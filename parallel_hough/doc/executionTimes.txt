@@ -1,0 +1,37 @@
+Time shown in [ms]
+65094/2420 ~ 25
+
+
+#-------------------------------
+65094 edge pixels:
+
+[version openMP]
+627   		1 CPU threads
+383   		2 CPU threads
+226   		4 CPU threads
+186   		8 CPU threads
+175 		16 CPU threads
+
+[version CUDA]
+all 		kernel only
+567.029		89	
+#-------------------------------
+
+
+
+#-------------------------------
+with Canny
+2420 edge pixels:
+
+[version openMP]
+155   		1 CPU threads
+101   		2 CPU threads
+65  		4 CPU threads
+56   		8 CPU threads
+54			16 CPU threads
+
+[version CUDA]
+all 		kernel only
+482			9	
+
+#-------------------------------

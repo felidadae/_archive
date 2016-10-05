@@ -1,0 +1,42 @@
+
+#
+# Without a group
+#
+
+#Temporary files
+*.*~
+*.Rhistory
+
+#config
+config.r
+
+
+
+#
+#	Documentation only tex files included
+#
+
+#all files from folder doc
+doc/*
+#except for tex files
+!doc/*.tex
+
+
+
+#
+#	Some trashes, but maybe 
+#	some day will turn out
+#	to be useful
+#
+
+#all files from trash
+.trash/*
+
+
+
+#
+#	Project files from IDE 
+#	or text editor, or sth
+#
+
+.projectFiles/*

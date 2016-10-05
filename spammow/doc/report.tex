@@ -1,0 +1,181 @@
+\documentclass[fleqn]{article}
+\usepackage{graphicx}
+\usepackage{polski}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{courier}
+\usepackage[top=0.3in, bottom=0.8in, left=0.8in, right=0.8in, a5paper]{geometry}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\renewcommand{\familydefault}{\sfdefault}
+
+\usepackage{listings}
+\usepackage{color}
+ 
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+ 
+\lstdefinestyle{mystyle}{
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegreen},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+ 
+\lstset{style=mystyle}
+
+% \usepackage{color}
+% \color{white}
+% \pagecolor{black}
+
+\begin{document}
+
+\title{Klasyfikacja danych tekstowych ze zbioru SpamAssassin Public Corpus}
+\author{Ola Dolot, Szymon Bugaj}
+
+\maketitle
+
+\begin{abstract}
+Sprawozdanie z pierwszego etapu projektu z przedmiotu Metody Odkrywania Wiedzy.
+Tematem projektu jest klasyfikacja danych tekstowych na zbiorze SpamAssassin Public Corpus.
+\end{abstract}
+
+\tableofcontents
+
+
+
+
+
+
+
+
+
+
+\section{Szczegółowa interpretacja tematu projektu}
+Dane ze zbioru ze zbioru SpamAssassin Public Corpus zawierają maile posortowane na kategorie:
+\begin{itemize}
+    \item SPAM     - maile zaklasyfikowane jako SPAM
+    \item easy HAM - maile łatwe do odróżnienia od SPAMu
+    \item hard HAM - maile trudne do odróżnienia od SPAMu
+\end{itemize}
+
+Zbiór zawiera 6047 wiadomości, gdzie 31\% to wiadomości SPAM.
+
+Mamy tu do czynienia z problemem klasyfikacji dwóklasowej (binarnej).
+
+\subsection{Zakres przygotowania danych oraz ustalenia wykorzystywanych technik wektorowej reprezentacji tekstu.}
+Każda wiadomość przekształcona zostanie ostatecznie w postać stratną wektora cech ciągłych (liczb rzeczywistych).
+
+Po wstępnym przetworzeniu danych (które mogłoby mieć np. za zadanie transformować słowa do podstawowej formy gramatycznej), ze wszystkich słów występujących w mailach wybrany zostanie zbiór słów kluczowych. W niżej znajdującym się podparagrafie opisana jest przykładowa metoda wyboru słów kluczowych. 
+
+Wiadomość reprezentować będziemy stratnie za pomocą wektora cech, gdzie kolejna cecha stanowić będzie wartość (pojedyncza liczba rzeczywista) wybranej miary związanej z częstością występowania słowa (znormalizowana częstość czy tf-idf) dla kolejnego słowa kluczowego. 
+
+Ponieważ wszystkie cechy będą atrybutami ciągłymi wiadomości będzie można również porównywać je
+za pomocą miar euklidesowych bądź miary kosinusowej.
+
+\subsubsection{Przykładowa metoda wyboru zbioru słów kluczowych}
+Dla każdego słowa estymujemy prawdopodobieństwa wystąpienia go w losowo wybranej wiadomości SPAM lub HAM $P(w|SPAM), P(w|HAM)$. Dla $P(w|SPAM)$ zliczamy w ilu wiadomościach typu SPAM słowo wystąpiło i dzielimy przez liczbę wiadomości. Analogicznie dla $P(w|HAM)$. Następnie liczymy iloraz oraz różnicę:
+\begin{align*}
+    &K = \frac {max(  P(w|S), P(w|H)  )}{min(  P(w|S), P(w|H)  )} \\
+    &\Delta = | P(w|S) - P(w|H) |
+\end{align*}
+Gdy $K=1$, słowo występuje równie często w wiadomościach typu SPAM i typu HAM. Im większe K tym większa jest rozbieżność w częstości występowania danego słowa dla dwóćh klas.
+Wybieramy graniczne $\Delta_{limiter}$. Filtrujemy z warunkiem $\Delta > \Delta_{limiter}$ i wybieramy zadaną liczbę słów z największym współczynnikiem K.
+
+
+
+
+
+
+\section{Badania}
+\subsection {Miary jakości i procedury oceny modeli}
+Miara będąca procentem błędnie klasyfikowanych maili nie jest adekwatna w praktycznym wykorzystaniu. Dużo mniej pożądaną sytuacją jest FP niż FN. Problem możemy rozwiązać poprzez minimalizację funkcji kosztu będącą ważoną sumą błędów FP i FN, gdzie współczynnik przy FP będzie znacząco większy.
+
+Miary $TP_{rate}, FP_{rate}$ zostaną wyznaczone.
+
+Ponadto stworzone zostaną krzywe ROC w zależności od progowej wartości prawdopodobieństwa zaliczania maila do klas. 
+
+
+\subsection{Cel}
+Chcemy porównać różne algorytmu klasyfikacji w tym jak dobrze radzą sobie z problemem filtracji SPAM dla zbioru SpamAssassin Public Corpus.
+
+Dla danego algorytmu chcemy znaleźć metaparametry maksymalizujące wybraną miarę jakości na rozłącznym ze zbiorem uczącym zbiorem testowym.
+
+Metaparametry algorytmów dobierać będziemy z nadzieją minimalizacji występowania niepożądanego zjawiska 
+
+
+\subsection{Badane algorytmy}
+W badaniach wykorzystamy poniższe algorytmy:
+\begin{itemize}
+    \item KNN
+    \item drzewa decyzyjne
+    \item bayes
+    \item sztuczną sieć neuronową z wsteczną propagacją błędu
+    \item SVM
+    \item adaboost
+    \item winnow 
+\end{itemize}
+
+\subsubsection{KNN}
+Istotne parametry wymagające strojenia: 
+\begin{itemize}
+    \item liczba sąsiadów
+\end{itemize}
+
+\subsubsection{Drzewa decyzyjne}
+Istotne parametry: 
+\begin{itemize}
+    \item warunek stopu
+    \item metody przycinania
+    \item miara użyta do wyboru testu (Gini lub entropia)
+\end{itemize}
+
+\subsubsection{Klasyfikacja Bayesa}
+Istotne parametry: 
+\begin{itemize}
+    \item założenia dotyczące rozkładów cech oraz ich zależności (czy każda cecha ma rozkład normalny, czy cechy są niezależne)
+\end{itemize}
+
+\subsubsection{Sieci neuronowe ze wsteczną propagacją błędu}
+Istotne parametry: 
+\begin{itemize}
+    \item funkcja kosztu dla której liczony jest gradient
+    \item liczba warstw sieci i liczność każdej warstwy
+    \item warunek stopu uczenia sieci
+\end{itemize}
+
+\subsubsection{Maszyna wektorów nośnych SVM}
+Istotne parametry: 
+\begin{itemize}
+    \item postać funkcji jądra
+\end{itemize}
+
+\subsubsection{Adaboost}
+Istotne parametry: 
+\begin{itemize}
+    \item wybór weak learner
+\end{itemize}
+
+
+
+
+\section{Otwarte kwestie}
+\begin{itemize}
+    \item Czy powinniśmy dopasować algorytm generacji wektorowej reprezentacji danych do algorytmu klasyfikacji?
+    \item Czy powinniśmy oprócz słów kluczowych w reprezentacji wiadomości mailowej również zawrzeć jakiegoś rodzaju informację o budowie maila (tytuł, RE:, godzina wysłania)
+\end{itemize}
+
+\end{document}

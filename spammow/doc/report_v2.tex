@@ -1,0 +1,445 @@
+\documentclass[fleqn]{article}
+\usepackage{graphicx}
+\usepackage{polski}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{courier}
+\usepackage[tableposition=top]{caption}
+\usepackage[top=0.3in, bottom=0.8in, left=0.8in, right=0.8in, a5paper]{geometry}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\renewcommand{\familydefault}{\sfdefault}
+
+\usepackage{listings}
+\usepackage{color}
+
+\usepackage{float}
+\restylefloat{table}
+ 
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+ 
+\lstdefinestyle{mystyle}{
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegreen},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+ 
+\lstset{style=mystyle}
+
+% \usepackage{color}
+% \color{white}
+% \pagecolor{black}
+
+\begin{document}
+
+\title{Klasyfikacja danych tekstowych ze zbioru SpamAssassin Public Corpus}
+\author{Aleksnadra Dolot, Szymon Bugaj}
+
+\maketitle
+
+\begin{abstract}
+Sprawozdanie z projektu z przedmiotu Metody Odkrywania Wiedzy.
+Tematem projektu jest klasyfikacja danych tekstowych na zbiorze SpamAssassin Public Corpus.
+\end{abstract}
+
+\tableofcontents
+
+
+\section{Szczegółowa interpretacja tematu projektu}
+Dane ze zbioru ze zbioru SpamAssassin Public Corpus zawierają maile posortowane na kategorie:
+\begin{itemize}
+    \item SPAM     - maile zaklasyfikowane jako SPAM
+    \item easy HAM - maile łatwe do odróżnienia od SPAMu
+    \item hard HAM - maile trudne do odróżnienia od SPAMu
+\end{itemize}
+
+Zbiór zawiera 6047 wiadomości, gdzie 31\% to wiadomości SPAM.
+
+Mamy tu do czynienia z problemem klasyfikacji dwóklasowej (binarnej).
+
+\subsection{Zakres przygotowania danych oraz ustalenia wykorzystywanych technik wektorowej reprezentacji tekstu.}
+
+Przy użyciu pakietu $tm$ języka $R$ wczytano wiadomości SPAM i HAM. Wczytane teksty zamieniono w postać startną - odseparowano nagłówki, a następnie je oczyszczono usuwając znaki specjalne, częste słowa (tzw. $stopwords$) i ciągi spacji. Wiadomości podzielona na zbiór treningowy i testowy w proporcji 7:3. Na podstawie zbioru treningowego napisnao funkcję wybierającą pewną liczbę słów kluczowych, o której w kolejnym paragrafie. Następnie utworzono macierz, której zmiennymi są najistotniejsze słowa kluczowe, a obserwacjami kolejne badane wiadomości zbioru treningowego. Wartością zmiennej odpowiadającej słowu kluczowemu jest liczba wystąpien danego słowa w wiadomości. Do macierzy dodano kolumnę określająca kategorię rozpatrywanych treningowych obserwacji (spam lub ham). 
+\\ \\
+Odległość nowej wiadomości ze zbioru testowego od zaklasyfikowanych wiadomości zbioru treningowego, to odległość między wielowymiarowymi punktami określonymi przez liczbę wystąpień słów kluczowych. Pozwala to na porównywanie wiadomości za pomocą miar euklidesowych (różne normy wektora - różny dystans Minkowskiego).
+
+\subsubsection{Metoda wyboru zbioru słów kluczowych}
+Dla każdego słowa estymujemy prawdopodobieństwa wystąpienia go w losowo wybranej wiadomości SPAM lub HAM $P(w|SPAM), P(w|HAM)$. Dla $P(w|SPAM)$ zliczamy w ilu wiadomościach typu SPAM słowo wystąpiło i dzielimy przez liczbę wiadomości. Analogicznie dla $P(w|HAM)$. Następnie liczymy iloraz oraz różnicę:
+\begin{align*}
+    &K = \frac {max(  P(w|S), P(w|H)  )}{min(  P(w|S), P(w|H)  )} \\
+    &\Delta = | P(w|S) - P(w|H) |
+\end{align*}
+Gdy $K=1$, słowo występuje równie często w wiadomościach typu SPAM i typu HAM. Im większe K tym większa jest rozbieżność w częstości występowania danego słowa dla dwóćh klas.
+Wybieramy graniczne $\Delta_{limiter}$. Filtrujemy z warunkiem $\Delta > \Delta_{limiter}$ i wybieramy zadaną liczbę słów z największym współczynnikiem K.
+
+
+
+\section{Badania}
+\subsection {Miary jakości i procedury oceny modeli}
+Miara będąca procentem błędnie klasyfikowanych maili nie jest adekwatna w praktycznym wykorzystaniu. Dużo mniej pożądaną sytuacją jest FP niż FN. Problem możemy rozwiązać poprzez minimalizację funkcji kosztu będącą ważoną sumą błędów FP i FN, gdzie współczynnik przy FP będzie znacząco większy.
+\\ \\
+Wyznaczone zostaną: macierz pomyłek oraz wartość funkcji kosztu postaci:
+
+\begin{align*}
+  &cost(FP_{rate}, FN_{rate}) = FP_{rate} * K + FN_{rate} \\
+  &K = 100
+\end{align*}
+
+Ponadto stworzone zostaną krzywe ROC, jako metoda oceny niezwiązana z naszym praktycznym problemem.
+
+\subsection {Strojenie parametrów algorytmów}
+Algorytmy stroimy poprzez uruchomienie metody dla danych testowych oraz szukanie takich parametrów algorytmu i takiej wartości progowej wartości decyzyjnej aby funkcja kosztu $cost(FP_{rate}, FN_{rate})$ była minimalna. Nie szukamy więc algorytmu ogólnie najlepszego w sensie analizy ROC, a takiego który dla zadanej przez nas funkcji kosztu da minimalną wartość. 
+
+Innymi słowy proces minimalizacji odbywa się w dwóch fazach:
+\begin{itemize}
+  \item znalezienie progu wartości decyzyjnej ($P(SPAM|dokument)$) tak aby funkcja kosztu była minimalna dla zadanych wartości parametrów;
+  \item znalezienie wartości parametrów dla których funkcja kosztu jest minimalna (podwójne minimum)
+\end{itemize}
+
+\subsection{Badane algorytmy}
+W badaniach wykorzystamy poniższe algorytmy:
+\begin{itemize}
+    \item kNN
+    \item Klasyfikacja Bayesa
+    \item Adaboost
+    \item drzewa decyzyjne
+    \item sztuczną sieć neuronową z wsteczną propagacją błędu
+    \item SVM
+\end{itemize}
+
+
+
+\subsubsection{kNN}
+Algorytm kNN (k-nearest neighbours) porównuje wprowadzane obserwacje z zaklasyfikowanymi obserwacjami ze zbioru treningowego. Następnie wybiera k obserwacji(tzw. najbliższych sąsiadów) ze zbioru trenującego, które względem pewnej miary odległości są najbliższe testowanej obserwacji. Prognoza jest uzyskiwane poprzez uśrednienie wartości klas sąsiadów. W projekcie użyto dwóch implementacji algorytmu kNN - z pakietu $class$ oraz z pakietu $kknn$.
+
+\begin{itemize}
+    \item Klasyfikacja przy użyciu pakietu $class$ 
+\end{itemize}
+
+\noindent Testowanym parametrem była liczba rozpatrywanych sąsiadów. Przyjęto koszt zaklasyfikowania hamu (właściwego maila) jako spamu ($false positive$) 100 razy większy od kosztu zaklasyfikowania spamu jako hamu ($false negative$).
+\\ \\
+\noindent Po przetestowaniu w pętli liczb sąsiadów od 1 do 30, najlepszą znaleziona okazała się liczba 5. Dla niej, uzyskano nastepujące wyniki:
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l||l|l}
+     & Actual SPAM & Actual HAM\\
+    \hline
+    Predicted SPAM & 514 & 38\\
+    Predicted HAM & 57 & 1204\\
+  \end{tabular}
+  \caption{Predykcja algorytmu knn z pakietu $class$}
+\end{table}
+
+\noindent Na podtawie wyliczonych prawdopodbieństw klas (dla algorytmu przy rozpatrywaniu 5 sąsiadów) uzyskano następującą krzywą ROC:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=70mm]{ROC_class_knn_5.pdf}
+\caption{Krzywa ROC dla klasyfikacji algorytmem knn z pakietu $class$ \label{overflow}}
+\label{fig:picture}
+\end{figure}
+
+\begin{itemize}
+    \item Klasyfikacja przy użyciu pakietu $kknn$ 
+\end{itemize}
+
+Pakiet $kknn$ pozwolił na przetestowanie większej ilości parametrów - poza liczbą sąsiadów testowano metrykę (numer liczonej normy wektora - tzw. dystans minkowskiego) oraz użyte jądro iczenia prawdopodobieństw. Jak poprzednio przyjęto koszt $false positive$ 100 razy większy od kosztu $false negative$.
+\\ \\
+\noindent Po przetestowaniu w pętli liczb sąsiadów od 1 do 30, oddystansu minkowskiego do 1 do 5 oraz typy jąder: $rectangular$ (knn bez wag),$triangular$, $cos$, $gaussian$, $optimal$). Najlepsze znalezione parametry to odpowiednio: 10, 1, $optimal$. Dla nich, uzyskano nastepujące wyniki:
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l||l|l}
+     & Actual SPAM & Actual HAM\\
+    \hline
+    Predicted SPAM & 536 & 26\\
+    Predicted HAM & 35 & 1216\\
+  \end{tabular}
+  \caption{Predykcja algorytmu knn z pakietu $kknn$}
+\end{table}
+
+\noindent Na podtawie wyliczonych prawdopodbieństw klas (dla algorytmu przy rozpatrywaniu 5 sąsiadów) uzyskano następującą krzywą ROC:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=70mm]{ROC_kknn_knn_10.pdf}
+\caption{Krzywa ROC dla klasyfikacji algorytmem knn z pakietu $kknn$ \label{overflow}}
+\label{fig:picture}
+\end{figure}
+
+\noindent Zauważmy, że dostosowywanie parametrów znacznie polepszyło jakoś predykcji, co łatwo zauważyć obserwując krzywą ROC. Liczba dobrych maili klasyfikowanych jako SPAM zmniejszyła się z 38 do 26.
+\\ \\
+Na koniec spróbowano zmienić próg przyporządkowywania wiadomości do klasy SPAM lub HAM, tak aby optymalizować funkcję kosztu, wciąż przy założeniu stosunku kosztu $false$ $positive$ do $false$ $negative$ 100:1. Otrzymano wyniki:
+\\ \\
+koszt = 740
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l||l|l}
+     & Actual SPAM & Actual HAM\\
+    \hline
+    Predicted SPAM & 431 & 6\\
+    Predicted HAM & 140 & 1236\\
+  \end{tabular}
+  \caption{Predykcja algorytmu knn z pakietu $kknn$}
+\end{table}
+
+Celowo zmniejszyliśmy liczbę źle klasyfikowanych właściwych maili, kosztem źle klasyfikowanych SPAMów, ponieważ dla użytkownika strata oczekiwanego maila jest o wiele bardziej dotkliwa niż SPAMy w skrzynce odbiorczej.
+
+\subsubsection{Klasyfikacja Bayesa}
+Naiwny Bayes to jeden z najpopularniejszych algorytmów do klasyfikacji tekstów. Mimo to w naszym przypadku źle. Nie pomogło wygładzanei metoda Laplace'a czy też $m-estymacja$ tzn. metoda dodawania sztucznych atrybutów, która nie miała większego wpływu na wyniki.
+\\ \\
+Do przeprowadzenia klasyfikacji naiwnym algorytmem Bayesa użyto pakietu $e1071$. Tetsowanym parametrem było wygładzanie Laplace'a, próg którym zastępujemy elementy będące w epsilonowym otoczeniu i wielkość parametru epsilon. Jak poprzednio przyjęto koszt $false positive$ 100 razy większy od kosztu $false negative$. Za najlepsze parametry przyjęto odpowiednio: 3,0,0. Uzyskano nastepujące wyniki:
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l||l|l}
+     & Actual SPAM & Actual HAM\\
+    \hline
+    Predicted SPAM & 506 & 130\\
+    Predicted HAM & 65 & 1112\\
+  \end{tabular}
+  \caption{Predykcja algorytmu naiwny Bayes z pakietu $e1071$}
+\end{table}
+
+\noindent Na podtawie wyliczonych prawdopodbieństw klas (dla algorytmu przy rozpatrywaniu 5 sąsiadów) uzyskano następującą krzywą ROC:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=70mm]{ROC_bayes.pdf}
+\caption{Krzywa ROC dla klasyfikacji algorymem naiwny Bayes z pakietu $e1071$ \label{overflow}}
+\label{fig:picture}
+\end{figure}
+
+\noindent Po optymalizacji progu decyzyjnego poprzez funkcję kosztu otrzymano wyniki:
+\\ \\
+koszt = 32201
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l||l|l}
+     & Actual SPAM & Actual HAM\\
+    \hline
+    Predicted SPAM & 370 & 32\\
+    Predicted HAM & 201 & 1210\\
+  \end{tabular}
+  \caption{Predykcja algorytmu knn z pakietu $kknn$}
+\end{table}
+
+\subsubsection{Adaboost}
+Algorytm Adaboost opiera się na technice boostingu - tworzenia wielu modeli słabych modeli, z których można stworzyć jeden silny model. Po utworzeniu pierwszego modelu, kolejne są tworzone tak, aby skompensować wady poprzednich (każdy kolejny model zależy od wszystkich poprzednich). Algorytm Adaboost w kolejnych iteracjach daje modelom te same zbiory przykładów, ale z aktualizowanymi wagami. Liczone są ważone błędy pomyłek, które wpływają na wagi tworzonych modeli. Utworzone modele głosują w sposób ważony z wyliczonymi w iteracjach wagami. Poszczególne model tworzone są poprzez drezwa decyzyjne - im prostsze tym lepiej).
+\\ \\
+Do projektu użyto implementacji z pakietu $adabag$. Jako parametry przetetsowano metodę uczenia się współczynników (zaimplementowane rozwiązania do wyboru to metody Briemana, Freunda i Zhu) oraz parametr określający liczbę drzew (słabych modeli), które są budowane przy tym algorytmie - przekłada się to na liczbę iteracji, w których wyliczane są błędy i zmieniane wagi modeli. Najlepsze znalezione parametry to metoda Briemana i liczba 100.
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l||l|l}
+     & Actual SPAM & Actual HAM\\
+    \hline
+    Predicted SPAM & 550 & 19\\
+    Predicted HAM & 21 & 1223\\
+  \end{tabular}
+  \caption{Predykcja algorytmu Adaboost z apkeitu $adabag$}
+\end{table}
+
+\noindent Na podtawie wyliczonych prawdopodbieństw klas (dla algorytmu przy rozpatrywaniu 5 sąsiadów) uzyskano następującą krzywą ROC:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=70mm]{ROC_adaboost_brieman_100.pdf}
+\caption{Krzywa ROC dla klasyfikacji algorytmem Adaboost z pakietu $adabag$ \label{overflow}}
+\label{fig:picture}
+\end{figure}
+
+\noindent Jak przewidywano na podstawie wykładu, mimo niewielkiej liczby dostosowywanych parametrów algorytm Adaboost daje najlepsze wyniki. Udało nam się otrzymać najmniej błędów i najlepszy wykres krzywej ROC.
+\\ \\
+\noindent Po optymalizacji progu decyzyjnego poprzez funkcję kosztu otrzymano wyniki:
+\\ \\
+koszt = 210
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l||l|l}
+     & Actual SPAM & Actual HAM\\
+    \hline
+    Predicted SPAM & 461 & 1\\
+    Predicted HAM & 110 & 1241\\
+  \end{tabular}
+  \caption{Predykcja algorytmu knn z pakietu $kknn$}
+\end{table}
+
+
+\subsubsection{Maszyna wektorów nośnych SVM}
+Użyta została implementacja z pakietu e1071.
+Ważne parametry niezmienne podczas uczenia to:
+\begin{itemize}
+    \item postać funkcji jądra jądra radialne
+\end{itemize}
+
+Parametry, które były strojone to:
+\begin{itemize}
+    \item $gamma = \{g: g=10^i \land i \geq -4 \land i \leq 1 \land i \in \field{N}  \}$
+    \item $cost  = \{c: c=10^i \land i \geq 1 \land i \leq 2 \land i \in \field{N} \}$
+\end{itemize}
+
+Wyniki $cost(FP_{rate}, FN_{rate}) = FP_{rate} * 100 + FN_{rate}$ (po wyborze minimalizującego właśnie tą funkcję progu wartości decyzyjnych) oraz AUC dla krzywej ROC:
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l|l||l|l}
+    $gamma$ & $cost$ & $cost(FP_{rate}, FN_{rate})$  & $AUC$\\
+    \hline
+    1e-04 &  10 & 1152 & 0.961 \\
+    1e-03 &  10 &  601 & 0.984 \\
+    1e-02 &  10 &  447 & \textbf{0.992} \\
+    1e-01 &  10 &  \textbf{345} & 0.989 \\
+    1e+00 &  10 &  622 & 0.981 \\
+    1e+01 &  10 &  701 & 0.857 \\
+    1e-04 & 100 & 1021 & 0.969 \\
+    1e-03 & 100 &  470 & 0.988 \\
+    1e-02 & 100 &  524 & 0.989 \\
+    1e-01 & 100 &  364 & 0.989 \\
+    1e+00 & 100 &  622 & 0.981 \\
+    1e+01 & 100 &  701 & 0.857 \\
+  \end{tabular}
+  \caption{Strojenie parametrów}
+\end{table}
+
+Najlepsze parametry (min $cost(FP_{rate}, FN_{rate})$):
+\begin{itemize}
+    \item $gamma = 0.1$
+    \item $cost  = 10$
+\end{itemize}
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l||l|l}
+     & Actual SPAM & Actual HAM\\
+    \hline
+    Predicted SPAM & 570 & 1\\
+    Predicted HAM & 245 & 997\\
+  \end{tabular}
+  \caption{Predykcja algorytmu SVM dla $gamma = 0.1$
+$cost  = 10$ jądra radialnego }
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=70mm]{svm_01_10.pdf}
+\caption{Krzywa ROC dla klasyfikacji algorytmem SVM dla $gamma = 0.1$
+$cost  = 10$ jądra radialnego \label{overflow}}
+\label{fig:picture}
+\end{figure}
+
+
+
+
+
+
+
+\subsubsection{Sieci neuronowe ze wsteczną propagacją błędu}
+Użyta została implementacja z pakietu $neuralnet$.
+Ważne parametry niezmienne podczas uczenia to:
+\begin{itemize}
+    \item liczba warstw ukrytych: jedna
+    \item funkcja aktywacji: logistyczna
+    \item 
+\end{itemize}
+
+Parametrem strojonym była liczba neuronów warstwie ukrytej:
+\begin{itemize}
+  \item Algorytm uczenia rprop+ (ang. resilientbackpropagation) lub backprop
+  \item Liczba neuronów w warstwie ukrytej $N = \{ 10, 50, 150, 500 \}$
+\end{itemize}
+
+Wyniki $cost(FP_{rate}, FN_{rate}) = FP_{rate} * 100 + FN_{rate}$ (po wyborze minimalizującego właśnie tą funkcję progu wartości decyzyjnych) oraz AUC dla krzywej ROC:
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l|l||l|l}
+    $algorithm$ & $hidden layer size$ & $cost(FP_{rate}, FN_{rate})$  & $AUC$\\
+    \hline
+    backprop &  10 & 1219 & 0.869 \\
+    backprop &  50 & 1242 & 0.514 \\
+    backprop & 150 & 1242 & 0.739 \\
+    backprop & 500 & 1242 & 0.500 \\
+      rprop+ &  10 &  653 & 0.980 \\
+      rprop+ &  50 &  674 & 0.987 \\
+      rprop+ & 150 &  \textbf{547} & \textbf{0.990} \\
+      rprop+ & 500 & 1091 & 0.983 \\
+  \end{tabular}
+  \caption{Strojenie parametrów}
+\end{table}
+
+Najlepsze parametry (min $cost(FP_{rate}, FN_{rate})$):
+\begin{itemize}
+    \item $algorithm = rprop+$
+    \item $N  = 150$
+\end{itemize}
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l||l|l}
+     & Actual SPAM & Actual HAM\\
+    \hline
+    Predicted SPAM & 569 & 2\\
+    Predicted HAM & 347 & 895\\
+  \end{tabular}
+  \caption{Predykcja siecią neuronową }
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=70mm]{ROC_nnet.pdf}
+\caption{Krzywa ROC dla klasyfikacji siecią neuronową \label{overflow}}
+\label{fig:picture}
+\end{figure}
+
+
+
+\subsubsection{Drzewa decyzyjne}
+Użyto implementacji z pakietu tree.
+Nie dokonano strojenia algorytmu.
+Uzyskany wnik to:
+
+\begin{table}[h!]
+  \centering
+  \label{tab:table1}
+  \begin{tabular}{l||l|l}
+     & Actual SPAM & Actual HAM\\
+    \hline
+    Predicted SPAM & 571 & 0\\
+    Predicted HAM & 1242 & 0\\
+  \end{tabular}
+  \caption{Predykcja siecią neuronową }
+\end{table}
+
+
+\end{document}
