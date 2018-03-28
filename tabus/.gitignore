@@ -1,0 +1,13 @@
+#development
+.dev/*.sublime-workspace
+
+#python temporary
+*.pyc
+*.pyo
+
+#db
+db.sqlite3
+
+#doc catalog is at dropbox 
+#so we add here as ignored
+doc

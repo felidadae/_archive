@@ -1,0 +1,1 @@
+python3 manage.py test --pattern *__test.py -v 2
